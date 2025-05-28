@@ -1,12 +1,55 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/Header";
+import Hero from "@/components/Hero";
+import GamesSection from "@/components/GamesSection";
+import SportsSection from "@/components/SportsSection";
+import LiveSection from "@/components/LiveSection";
+import Footer from "@/components/Footer";
+import AuthModal from "@/components/AuthModal";
+import { Session } from "@supabase/supabase-js";
 
 const Index = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-slate-950 text-slate-50">
+      <Header 
+        session={session} 
+        onAuthClick={() => setShowAuthModal(true)}
+      />
+      
+      <main className="pt-16">
+        <Hero onGetStarted={() => setShowAuthModal(true)} />
+        <GamesSection />
+        <SportsSection />
+        <LiveSection />
+      </main>
+
+      <Footer />
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
   );
 };
