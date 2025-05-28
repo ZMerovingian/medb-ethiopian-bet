@@ -5,7 +5,19 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://hoyqlumkyjpmuvelliwc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhveXFsdW1reWpwbXV2ZWxsaXdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MjMwOTEsImV4cCI6MjA2Mzk5OTA5MX0.HXmmK_E1PVWAiP0aZyWxQEljnhjYz5_FVB_h7nqKAiU";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+let supabase;
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+try {
+  supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+} catch (error) {
+  console.error('Error initializing Supabase client:', error);
+  // Provide a fallback client that will gracefully handle errors
+  supabase = {
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    },
+  } as any;
+}
+
+export { supabase };
