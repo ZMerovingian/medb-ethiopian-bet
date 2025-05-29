@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +27,15 @@ interface Match {
 interface InternationalBettingProps {
   session: Session | null;
 }
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 const InternationalBetting = ({ session }: InternationalBettingProps) => {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -159,15 +167,6 @@ const InternationalBetting = ({ session }: InternationalBettingProps) => {
       case 'finished': return 'bg-gray-500';
       default: return 'bg-gray-500';
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   const upcomingMatches = matches.filter(m => m.status === 'upcoming');

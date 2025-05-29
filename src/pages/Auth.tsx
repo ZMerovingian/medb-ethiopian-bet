@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, User, Phone, Calendar, MapPin } from "lucide-react";
-import { GoogleAuth } from "@/components/GoogleAuth";
+import GoogleAuth from "@/components/GoogleAuth";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
