@@ -96,6 +96,36 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          id: string
+          is_global: boolean | null
+          message: string
+          receiver_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_global?: boolean | null
+          message: string
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_global?: boolean | null
+          message?: string
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Relationships: []
+      }
       game_sessions: {
         Row: {
           bet_amount: number
@@ -185,8 +215,164 @@ export type Database = {
         }
         Relationships: []
       }
+      international_matches: {
+        Row: {
+          away_score: number | null
+          away_team: string
+          competition: string
+          created_at: string | null
+          home_score: number | null
+          home_team: string
+          id: string
+          live_odds: Json | null
+          match_date: string
+          odds: Json | null
+          status: string | null
+        }
+        Insert: {
+          away_score?: number | null
+          away_team: string
+          competition: string
+          created_at?: string | null
+          home_score?: number | null
+          home_team: string
+          id?: string
+          live_odds?: Json | null
+          match_date: string
+          odds?: Json | null
+          status?: string | null
+        }
+        Update: {
+          away_score?: number | null
+          away_team?: string
+          competition?: string
+          created_at?: string | null
+          home_score?: number | null
+          home_team?: string
+          id?: string
+          live_odds?: Json | null
+          match_date?: string
+          odds?: Json | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      live_bets: {
+        Row: {
+          actual_payout: number | null
+          bet_type: string
+          event_id: string | null
+          id: string
+          odds: number
+          placed_at: string | null
+          potential_payout: number
+          selection: string
+          settled_at: string | null
+          stake: number
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_payout?: number | null
+          bet_type: string
+          event_id?: string | null
+          id?: string
+          odds: number
+          placed_at?: string | null
+          potential_payout: number
+          selection: string
+          settled_at?: string | null
+          stake: number
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_payout?: number | null
+          bet_type?: string
+          event_id?: string | null
+          id?: string
+          odds?: number
+          placed_at?: string | null
+          potential_payout?: number
+          selection?: string
+          settled_at?: string | null
+          stake?: number
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_bets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "sports_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
           balance: number | null
           country: string | null
           created_at: string | null
@@ -198,12 +384,16 @@ export type Database = {
           kyc_status: string | null
           last_name: string | null
           phone: string | null
+          referral_code: string | null
+          total_wagered: number | null
           two_fa_enabled: boolean | null
           updated_at: string | null
           user_id: string
           username: string | null
+          vip_level_id: string | null
         }
         Insert: {
+          avatar_url?: string | null
           balance?: number | null
           country?: string | null
           created_at?: string | null
@@ -215,12 +405,16 @@ export type Database = {
           kyc_status?: string | null
           last_name?: string | null
           phone?: string | null
+          referral_code?: string | null
+          total_wagered?: number | null
           two_fa_enabled?: boolean | null
           updated_at?: string | null
           user_id: string
           username?: string | null
+          vip_level_id?: string | null
         }
         Update: {
+          avatar_url?: string | null
           balance?: number | null
           country?: string | null
           created_at?: string | null
@@ -232,10 +426,54 @@ export type Database = {
           kyc_status?: string | null
           last_name?: string | null
           phone?: string | null
+          referral_code?: string | null
+          total_wagered?: number | null
           two_fa_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string
           username?: string | null
+          vip_level_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_vip_level_id_fkey"
+            columns: ["vip_level_id"]
+            isOneToOne: false
+            referencedRelation: "vip_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          code: string
+          commission_earned: number | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          referred_id: string | null
+          referrer_id: string | null
+          status: string | null
+        }
+        Insert: {
+          code: string
+          commission_earned?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          referred_id?: string | null
+          referrer_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          code?: string
+          commission_earned?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          referred_id?: string | null
+          referrer_id?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -281,6 +519,42 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          priority: string | null
+          resolved_at: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          priority?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          priority?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -289,6 +563,9 @@ export type Database = {
           external_transaction_id: string | null
           id: string
           payment_method: string | null
+          phone_number: string | null
+          provider_response: Json | null
+          reference_number: string | null
           status: string | null
           type: string
           user_id: string
@@ -300,6 +577,9 @@ export type Database = {
           external_transaction_id?: string | null
           id?: string
           payment_method?: string | null
+          phone_number?: string | null
+          provider_response?: Json | null
+          reference_number?: string | null
           status?: string | null
           type: string
           user_id: string
@@ -311,9 +591,78 @@ export type Database = {
           external_transaction_id?: string | null
           id?: string
           payment_method?: string | null
+          phone_number?: string | null
+          provider_response?: Json | null
+          reference_number?: string | null
           status?: string | null
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string | null
+          deposit_limit: number | null
+          id: string
+          language: string | null
+          loss_limit: number | null
+          notification_preferences: Json | null
+          self_exclusion_until: string | null
+          timezone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deposit_limit?: number | null
+          id?: string
+          language?: string | null
+          loss_limit?: number | null
+          notification_preferences?: Json | null
+          self_exclusion_until?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deposit_limit?: number | null
+          id?: string
+          language?: string | null
+          loss_limit?: number | null
+          notification_preferences?: Json | null
+          self_exclusion_until?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      vip_levels: {
+        Row: {
+          benefits: Json
+          created_at: string | null
+          id: string
+          level: number
+          name: string
+          requirements: Json
+        }
+        Insert: {
+          benefits: Json
+          created_at?: string | null
+          id?: string
+          level: number
+          name: string
+          requirements: Json
+        }
+        Update: {
+          benefits?: Json
+          created_at?: string | null
+          id?: string
+          level?: number
+          name?: string
+          requirements?: Json
         }
         Relationships: []
       }
@@ -322,7 +671,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_user_balance: {
+        Args: { user_uuid: string; amount: number; transaction_type: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
