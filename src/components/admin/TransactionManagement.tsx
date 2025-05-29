@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +57,22 @@ export const TransactionManagement = ({ session }: TransactionManagementProps) =
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTransactions(data || []);
+      
+      // Transform the data to match our Transaction interface
+      const transformedData: Transaction[] = (data || []).map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        type: item.type,
+        amount: item.amount,
+        payment_method: item.payment_method || '',
+        phone_number: item.phone_number || '',
+        reference_number: item.reference_number || '',
+        status: item.status,
+        created_at: item.created_at,
+        profiles: Array.isArray(item.profiles) && item.profiles.length > 0 ? item.profiles[0] : null
+      }));
+      
+      setTransactions(transformedData);
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({
