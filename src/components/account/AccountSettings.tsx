@@ -5,50 +5,36 @@ import { useToast } from "@/hooks/use-toast";
 import { Session } from "@supabase/supabase-js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Bell, Globe, AlertTriangle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { AlertTriangle, Shield, Bell } from "lucide-react";
 
 interface AccountSettingsProps {
   session: Session | null;
 }
 
-interface UserSettings {
-  notification_preferences: {
-    push: boolean;
-    email: boolean;
-    sms: boolean;
-  };
-  language: string;
-  timezone: string;
-  two_fa_enabled: boolean;
-  deposit_limit: number | null;
-  loss_limit: number | null;
-  self_exclusion_until: string | null;
+interface NotificationSettings {
+  push: boolean;
+  email: boolean;
+  sms: boolean;
+}
+
+interface SecuritySettings {
+  two_factor_enabled: boolean;
+  login_alerts: boolean;
 }
 
 const AccountSettings = ({ session }: AccountSettingsProps) => {
-  const [settings, setSettings] = useState<UserSettings>({
-    notification_preferences: {
-      push: true,
-      email: true,
-      sms: false
-    },
-    language: 'en',
-    timezone: 'UTC',
-    two_fa_enabled: false,
-    deposit_limit: null,
-    loss_limit: null,
-    self_exclusion_until: null
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    push: true,
+    email: true,
+    sms: false
+  });
+  const [security, setSecurity] = useState<SecuritySettings>({
+    two_factor_enabled: false,
+    login_alerts: true
   });
   const [loading, setLoading] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    current_password: '',
-    new_password: '',
-    confirm_password: ''
-  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,26 +46,27 @@ const AccountSettings = ({ session }: AccountSettingsProps) => {
   const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
-        .from('user_settings')
-        .select('*')
+        .from('profiles')
+        .select('notification_settings, security_settings')
         .eq('user_id', session?.user?.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
 
-      if (data) {
-        setSettings({
-          notification_preferences: data.notification_preferences || {
-            push: true,
-            email: true,
-            sms: false
-          },
-          language: data.language || 'en',
-          timezone: data.timezone || 'UTC',
-          two_fa_enabled: false, // This would come from profile
-          deposit_limit: data.deposit_limit,
-          loss_limit: data.loss_limit,
-          self_exclusion_until: data.self_exclusion_until
+      if (data?.notification_settings && typeof data.notification_settings === 'object') {
+        const notifSettings = data.notification_settings as any;
+        setNotifications({
+          push: notifSettings.push || false,
+          email: notifSettings.email || false,
+          sms: notifSettings.sms || false
+        });
+      }
+
+      if (data?.security_settings && typeof data.security_settings === 'object') {
+        const secSettings = data.security_settings as any;
+        setSecurity({
+          two_factor_enabled: secSettings.two_factor_enabled || false,
+          login_alerts: secSettings.login_alerts || false
         });
       }
     } catch (error) {
@@ -87,27 +74,20 @@ const AccountSettings = ({ session }: AccountSettingsProps) => {
     }
   };
 
-  const updateSettings = async () => {
+  const updateNotificationSettings = async (newSettings: NotificationSettings) => {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('user_settings')
-        .upsert({
-          user_id: session?.user?.id,
-          notification_preferences: settings.notification_preferences,
-          language: settings.language,
-          timezone: settings.timezone,
-          deposit_limit: settings.deposit_limit,
-          loss_limit: settings.loss_limit,
-          self_exclusion_until: settings.self_exclusion_until,
-          updated_at: new Date().toISOString()
-        });
+        .from('profiles')
+        .update({ notification_settings: newSettings })
+        .eq('user_id', session?.user?.id);
 
       if (error) throw error;
 
+      setNotifications(newSettings);
       toast({
-        title: "Settings updated",
-        description: "Your account settings have been updated successfully.",
+        title: "Notification settings updated",
+        description: "Your preferences have been saved.",
       });
     } catch (error: any) {
       toast({
@@ -120,46 +100,52 @@ const AccountSettings = ({ session }: AccountSettingsProps) => {
     }
   };
 
-  const changePassword = async () => {
-    if (passwordData.new_password !== passwordData.confirm_password) {
-      toast({
-        title: "Password mismatch",
-        description: "New password and confirmation don't match.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const updateSecuritySettings = async (newSettings: SecuritySettings) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ security_settings: newSettings })
+        .eq('user_id', session?.user?.id);
 
-    if (passwordData.new_password.length < 6) {
+      if (error) throw error;
+
+      setSecurity(newSettings);
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
+        title: "Security settings updated",
+        description: "Your security preferences have been saved.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error updating settings",
+        description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.new_password
-      });
-
+      const { error } = await supabase.auth.admin.deleteUser(session?.user?.id || '');
+      
       if (error) throw error;
 
       toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
       });
 
-      setPasswordData({
-        current_password: '',
-        new_password: '',
-        confirm_password: ''
-      });
+      window.location.href = '/';
     } catch (error: any) {
       toast({
-        title: "Error changing password",
+        title: "Error deleting account",
         description: error.message,
         variant: "destructive",
       });
@@ -182,99 +168,45 @@ const AccountSettings = ({ session }: AccountSettingsProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="space-y-0.5">
               <Label className="text-slate-300">Push Notifications</Label>
-              <p className="text-slate-400 text-sm">Receive notifications in your browser</p>
+              <p className="text-sm text-slate-500">Receive push notifications in your browser</p>
             </div>
             <Switch
-              checked={settings.notification_preferences.push}
+              checked={notifications.push}
               onCheckedChange={(checked) => 
-                setSettings({
-                  ...settings,
-                  notification_preferences: {
-                    ...settings.notification_preferences,
-                    push: checked
-                  }
-                })
+                updateNotificationSettings({ ...notifications, push: checked })
               }
+              disabled={loading}
             />
           </div>
 
           <div className="flex items-center justify-between">
-            <div>
+            <div className="space-y-0.5">
               <Label className="text-slate-300">Email Notifications</Label>
-              <p className="text-slate-400 text-sm">Receive notifications via email</p>
+              <p className="text-sm text-slate-500">Receive notifications via email</p>
             </div>
             <Switch
-              checked={settings.notification_preferences.email}
+              checked={notifications.email}
               onCheckedChange={(checked) => 
-                setSettings({
-                  ...settings,
-                  notification_preferences: {
-                    ...settings.notification_preferences,
-                    email: checked
-                  }
-                })
+                updateNotificationSettings({ ...notifications, email: checked })
               }
+              disabled={loading}
             />
           </div>
 
           <div className="flex items-center justify-between">
-            <div>
+            <div className="space-y-0.5">
               <Label className="text-slate-300">SMS Notifications</Label>
-              <p className="text-slate-400 text-sm">Receive notifications via SMS</p>
+              <p className="text-sm text-slate-500">Receive notifications via SMS</p>
             </div>
             <Switch
-              checked={settings.notification_preferences.sms}
+              checked={notifications.sms}
               onCheckedChange={(checked) => 
-                setSettings({
-                  ...settings,
-                  notification_preferences: {
-                    ...settings.notification_preferences,
-                    sms: checked
-                  }
-                })
+                updateNotificationSettings({ ...notifications, sms: checked })
               }
+              disabled={loading}
             />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Globe className="w-5 h-5" />
-            Regional Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-slate-300">Language</Label>
-              <Select value={settings.language} onValueChange={(value) => setSettings({...settings, language: value})}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  <SelectItem value="en" className="text-white">English</SelectItem>
-                  <SelectItem value="am" className="text-white">አማርኛ (Amharic)</SelectItem>
-                  <SelectItem value="or" className="text-white">Oromiffa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-300">Timezone</Label>
-              <Select value={settings.timezone} onValueChange={(value) => setSettings({...settings, timezone: value})}>
-                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-700 border-slate-600">
-                  <SelectItem value="Africa/Addis_Ababa" className="text-white">Ethiopia Time (EAT)</SelectItem>
-                  <SelectItem value="UTC" className="text-white">UTC</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -285,112 +217,62 @@ const AccountSettings = ({ session }: AccountSettingsProps) => {
             <Shield className="w-5 h-5" />
             Security Settings
           </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label className="text-slate-300">Current Password</Label>
-              <Input
-                type="password"
-                value={passwordData.current_password}
-                onChange={(e) => setPasswordData({...passwordData, current_password: e.target.value})}
-                className="bg-slate-700 border-slate-600 text-white"
-                placeholder="Enter current password"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-300">New Password</Label>
-              <Input
-                type="password"
-                value={passwordData.new_password}
-                onChange={(e) => setPasswordData({...passwordData, new_password: e.target.value})}
-                className="bg-slate-700 border-slate-600 text-white"
-                placeholder="Enter new password"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-300">Confirm Password</Label>
-              <Input
-                type="password"
-                value={passwordData.confirm_password}
-                onChange={(e) => setPasswordData({...passwordData, confirm_password: e.target.value})}
-                className="bg-slate-700 border-slate-600 text-white"
-                placeholder="Confirm new password"
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={changePassword}
-            disabled={loading || !passwordData.new_password}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            {loading ? 'Updating...' : 'Change Password'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-800 border-slate-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
-            Responsible Gaming
-          </CardTitle>
           <CardDescription className="text-slate-400">
-            Set limits to help manage your gaming activities
+            Manage your account security preferences
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-slate-300">Daily Deposit Limit (ETB)</Label>
-              <Input
-                type="number"
-                value={settings.deposit_limit || ''}
-                onChange={(e) => setSettings({...settings, deposit_limit: e.target.value ? Number(e.target.value) : null})}
-                className="bg-slate-700 border-slate-600 text-white"
-                placeholder="Enter daily limit"
-              />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-slate-300">Two-Factor Authentication</Label>
+              <p className="text-sm text-slate-500">Add an extra layer of security to your account</p>
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-slate-300">Daily Loss Limit (ETB)</Label>
-              <Input
-                type="number"
-                value={settings.loss_limit || ''}
-                onChange={(e) => setSettings({...settings, loss_limit: e.target.value ? Number(e.target.value) : null})}
-                className="bg-slate-700 border-slate-600 text-white"
-                placeholder="Enter loss limit"
-              />
-            </div>
+            <Switch
+              checked={security.two_factor_enabled}
+              onCheckedChange={(checked) => 
+                updateSecuritySettings({ ...security, two_factor_enabled: checked })
+              }
+              disabled={loading}
+            />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-slate-300">Self-Exclusion Until</Label>
-            <Input
-              type="date"
-              value={settings.self_exclusion_until || ''}
-              onChange={(e) => setSettings({...settings, self_exclusion_until: e.target.value})}
-              className="bg-slate-700 border-slate-600 text-white"
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-slate-300">Login Alerts</Label>
+              <p className="text-sm text-slate-500">Get notified of new login attempts</p>
+            </div>
+            <Switch
+              checked={security.login_alerts}
+              onCheckedChange={(checked) => 
+                updateSecuritySettings({ ...security, login_alerts: checked })
+              }
+              disabled={loading}
             />
-            <p className="text-slate-400 text-sm">
-              Temporarily exclude yourself from the platform until this date
-            </p>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button
-          onClick={updateSettings}
-          disabled={loading}
-          className="bg-yellow-500 hover:bg-yellow-600 text-slate-900"
-        >
-          {loading ? 'Saving...' : 'Save Settings'}
-        </Button>
-      </div>
+      <Card className="bg-red-900/20 border-red-700">
+        <CardHeader>
+          <CardTitle className="text-red-400 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription className="text-red-300">
+            Irreversible and destructive actions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="destructive"
+            onClick={deleteAccount}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {loading ? 'Deleting...' : 'Delete Account'}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };

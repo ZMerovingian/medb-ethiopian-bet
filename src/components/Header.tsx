@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Session } from "@supabase/supabase-js";
-import { User, LogOut, Settings } from "lucide-react";
+import { User, LogOut, settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -11,6 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSelector from "@/components/LanguageSelector";
 
 interface HeaderProps {
   session: Session | null;
@@ -19,29 +21,33 @@ interface HeaderProps {
 }
 
 const Header = ({ session, onAuthClick, onSignOut }: HeaderProps) => {
+  const { t } = useLanguage();
+
   return (
     <header className="fixed top-0 w-full bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 z-50">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-yellow-500">BetEthiopia</h1>
+            <h1 className="text-2xl font-bold text-yellow-500">{t('siteName')}</h1>
             <nav className="hidden md:flex space-x-6">
               <a href="/" className="text-slate-300 hover:text-yellow-500 transition-colors">
-                Home
+                {t('home')}
               </a>
               <a href="#games" className="text-slate-300 hover:text-yellow-500 transition-colors">
-                Games
+                {t('games')}
               </a>
               <a href="#sports" className="text-slate-300 hover:text-yellow-500 transition-colors">
-                Sports
+                {t('sports')}
               </a>
               <a href="#live" className="text-slate-300 hover:text-yellow-500 transition-colors">
-                Live
+                {t('live')}
               </a>
             </nav>
           </div>
 
           <div className="flex items-center space-x-4">
+            <LanguageSelector />
+            
             {session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -65,8 +71,8 @@ const Header = ({ session, onAuthClick, onSignOut }: HeaderProps) => {
                     className="text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer"
                     onClick={() => window.location.href = '/account'}
                   >
-                    <Settings className="mr-2 h-4 w-4" />
-                    Account Settings
+                    <settings className="mr-2 h-4 w-4" />
+                    {t('accountSettings')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-700" />
                   <DropdownMenuItem 
@@ -74,7 +80,7 @@ const Header = ({ session, onAuthClick, onSignOut }: HeaderProps) => {
                     onClick={onSignOut}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    Log out
+                    {t('logOut')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -85,13 +91,13 @@ const Header = ({ session, onAuthClick, onSignOut }: HeaderProps) => {
                   onClick={onAuthClick}
                   className="border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
-                  Sign In
+                  {t('signIn')}
                 </Button>
                 <Button
                   onClick={() => window.location.href = '/auth'}
                   className="bg-yellow-500 text-slate-900 hover:bg-yellow-600"
                 >
-                  Get Started
+                  {t('getStarted')}
                 </Button>
               </>
             )}

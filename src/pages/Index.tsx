@@ -15,13 +15,15 @@ import GamePlay from "@/components/GamePlay";
 import InternationalBetting from "@/components/InternationalBetting";
 import { Session } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Gamepad2, Wallet as WalletIcon, Trophy, Settings, Tv } from "lucide-react";
+import { Home, Gamepad2, Wallet as WalletIcon, Trophy, settings, Tv } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Get initial session
@@ -106,27 +108,27 @@ const Index = () => {
             <TabsList className="grid w-full grid-cols-6 bg-slate-800 mb-6">
               <TabsTrigger value="home" className="flex items-center gap-2 text-slate-300">
                 <Home className="w-4 h-4" />
-                Home
+                {t('home')}
               </TabsTrigger>
               <TabsTrigger value="games" className="flex items-center gap-2 text-slate-300">
                 <Gamepad2 className="w-4 h-4" />
-                Games
+                {t('games')}
               </TabsTrigger>
               <TabsTrigger value="sports" className="flex items-center gap-2 text-slate-300">
                 <Trophy className="w-4 h-4" />
-                Sports Betting
+                {t('sportsBetting')}
               </TabsTrigger>
               <TabsTrigger value="live-tv" className="flex items-center gap-2 text-slate-300">
                 <Tv className="w-4 h-4" />
-                Live TV
+                {t('liveTV')}
               </TabsTrigger>
               <TabsTrigger value="wallet" className="flex items-center gap-2 text-slate-300">
                 <WalletIcon className="w-4 h-4" />
-                Wallet
+                {t('wallet')}
               </TabsTrigger>
               <TabsTrigger value="admin" className="flex items-center gap-2 text-slate-300">
-                <Settings className="w-4 h-4" />
-                Admin
+                <settings className="w-4 h-4" />
+                {t('admin')}
               </TabsTrigger>
             </TabsList>
 

@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Session } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, CreditCard, Shield, Settings as SettingsIcon } from "lucide-react";
+import { User, CreditCard, Shield, settings as SettingsIcon } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import ProfileSection from "@/components/account/ProfileSection";
 import VerificationSection from "@/components/account/VerificationSection";
 import PaymentMethodsSection from "@/components/account/PaymentMethodsSection";
@@ -18,6 +19,7 @@ interface AccountProps {
 const Account = ({ session }: AccountProps) => {
   const [activeTab, setActiveTab] = useState("profile");
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!session) {
@@ -39,7 +41,7 @@ const Account = ({ session }: AccountProps) => {
     <div className="min-h-screen bg-slate-950 text-slate-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">My Account</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('myAccount')}</h1>
           <p className="text-slate-400">Manage your profile, verification, and account settings</p>
         </div>
 
@@ -47,19 +49,19 @@ const Account = ({ session }: AccountProps) => {
           <TabsList className="grid w-full grid-cols-4 bg-slate-800 mb-6">
             <TabsTrigger value="profile" className="flex items-center gap-2 text-slate-300">
               <User className="w-4 h-4" />
-              Profile
+              {t('profile')}
             </TabsTrigger>
             <TabsTrigger value="verification" className="flex items-center gap-2 text-slate-300">
               <Shield className="w-4 h-4" />
-              Verification
+              {t('verification')}
             </TabsTrigger>
             <TabsTrigger value="payment" className="flex items-center gap-2 text-slate-300">
               <CreditCard className="w-4 h-4" />
-              Payment Methods
+              {t('paymentMethods')}
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2 text-slate-300">
               <SettingsIcon className="w-4 h-4" />
-              Settings
+              {t('settings')}
             </TabsTrigger>
           </TabsList>
 
