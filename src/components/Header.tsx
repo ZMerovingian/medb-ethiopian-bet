@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Link } from "react-router-dom";
+import { LanguageSelector } from "./LanguageSelector";
 
 interface HeaderProps {
   session: Session | null;
@@ -71,8 +72,10 @@ const Header = ({ session, onAuthClick }: HeaderProps) => {
             </a>
           </nav>
 
-          {/* Auth Section */}
+          {/* Right side items */}
           <div className="flex items-center space-x-4">
+            <LanguageSelector />
+            
             {session ? (
               <div className="flex items-center space-x-4">
                 <div className="hidden sm:flex items-center space-x-2 bg-slate-800 px-3 py-2 rounded-lg">
@@ -96,9 +99,11 @@ const Header = ({ session, onAuthClick }: HeaderProps) => {
                       <Wallet className="w-4 h-4 mr-2" />
                       Wallet
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-slate-300 hover:text-white hover:bg-slate-700">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Settings
+                    <DropdownMenuItem asChild className="text-slate-300 hover:text-white hover:bg-slate-700">
+                      <Link to="/account">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={handleSignOut}
