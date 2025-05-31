@@ -7,6 +7,7 @@ import Hero from "@/components/Hero";
 import GamesSection from "@/components/GamesSection";
 import SportsSection from "@/components/SportsSection";
 import LiveSection from "@/components/LiveSection";
+import LiveSportsViewing from "@/components/LiveSportsViewing";
 import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
 import Wallet from "@/components/Wallet";
@@ -14,7 +15,7 @@ import GamePlay from "@/components/GamePlay";
 import InternationalBetting from "@/components/InternationalBetting";
 import { Session } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Gamepad2, Wallet as WalletIcon, Trophy, Settings } from "lucide-react";
+import { Home, Gamepad2, Wallet as WalletIcon, Trophy, Settings, Tv } from "lucide-react";
 
 const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -77,6 +78,7 @@ const Index = () => {
           <Hero onGetStarted={() => window.location.href = '/auth'} />
           <GamesSection />
           <SportsSection />
+          <LiveSportsViewing />
           <LiveSection />
         </main>
 
@@ -101,7 +103,7 @@ const Index = () => {
       <main className="pt-16">
         <div className="container mx-auto px-4 py-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-slate-800 mb-6">
+            <TabsList className="grid w-full grid-cols-6 bg-slate-800 mb-6">
               <TabsTrigger value="home" className="flex items-center gap-2 text-slate-300">
                 <Home className="w-4 h-4" />
                 Home
@@ -113,6 +115,10 @@ const Index = () => {
               <TabsTrigger value="sports" className="flex items-center gap-2 text-slate-300">
                 <Trophy className="w-4 h-4" />
                 Sports Betting
+              </TabsTrigger>
+              <TabsTrigger value="live-tv" className="flex items-center gap-2 text-slate-300">
+                <Tv className="w-4 h-4" />
+                Live TV
               </TabsTrigger>
               <TabsTrigger value="wallet" className="flex items-center gap-2 text-slate-300">
                 <WalletIcon className="w-4 h-4" />
@@ -128,6 +134,7 @@ const Index = () => {
               <div className="space-y-16">
                 <GamesSection />
                 <SportsSection />
+                <LiveSportsViewing />
                 <LiveSection />
               </div>
             </TabsContent>
@@ -138,6 +145,10 @@ const Index = () => {
 
             <TabsContent value="sports">
               <InternationalBetting session={session} />
+            </TabsContent>
+
+            <TabsContent value="live-tv">
+              <LiveSportsViewing />
             </TabsContent>
 
             <TabsContent value="wallet">
