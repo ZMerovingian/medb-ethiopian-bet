@@ -1,248 +1,280 @@
 
 import { useState, useEffect } from "react";
-import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Session } from "@supabase/supabase-js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { AlertTriangle, Shield, Bell } from "lucide-react";
 
 interface AccountSettingsProps {
-  session: Session;
+  session: Session | null;
 }
 
-interface UserProfile {
-  id: string;
-  user_id: string;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  email_notifications?: boolean;
-  sms_notifications?: boolean;
-  two_factor_enabled?: boolean;
+interface NotificationSettings {
+  push: boolean;
+  email: boolean;
+  sms: boolean;
 }
 
-export const AccountSettings = ({ session }: AccountSettingsProps) => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
+interface SecuritySettings {
+  two_factor_enabled: boolean;
+  login_alerts: boolean;
+}
+
+const AccountSettings = ({ session }: AccountSettingsProps) => {
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    push: true,
+    email: true,
+    sms: false
+  });
+  const [security, setSecurity] = useState<SecuritySettings>({
+    two_factor_enabled: false,
+    login_alerts: true
+  });
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadProfile();
+    if (session?.user) {
+      fetchSettings();
+    }
   }, [session]);
 
-  const loadProfile = async () => {
+  const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('user_id', session.user.id)
+        .select('notification_settings, security_settings')
+        .eq('user_id', session?.user?.id)
         .single();
 
       if (error) throw error;
-      setProfile(data);
+
+      if (data?.notification_settings && typeof data.notification_settings === 'object') {
+        const notifSettings = data.notification_settings as any;
+        setNotifications({
+          push: notifSettings.push || false,
+          email: notifSettings.email || false,
+          sms: notifSettings.sms || false
+        });
+      }
+
+      if (data?.security_settings && typeof data.security_settings === 'object') {
+        const secSettings = data.security_settings as any;
+        setSecurity({
+          two_factor_enabled: secSettings.two_factor_enabled || false,
+          login_alerts: secSettings.login_alerts || false
+        });
+      }
     } catch (error) {
-      console.error('Error loading profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load account settings",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      console.error('Error fetching settings:', error);
     }
   };
 
-  const updateNotificationSettings = async (field: string, value: boolean) => {
-    if (!profile) return;
-
-    setIsUpdating(true);
+  const updateNotificationSettings = async (newSettings: NotificationSettings) => {
+    setLoading(true);
     try {
-      const updates = { [field]: value };
-      
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('user_id', session.user.id);
+        .update({ notification_settings: newSettings })
+        .eq('user_id', session?.user?.id);
 
       if (error) throw error;
 
-      setProfile({ ...profile, ...updates });
+      setNotifications(newSettings);
       toast({
-        title: "Success",
-        description: "Notification settings updated",
+        title: "Notification settings updated",
+        description: "Your preferences have been saved.",
       });
-    } catch (error) {
-      console.error('Error updating settings:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to update settings",
+        title: "Error updating settings",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsUpdating(false);
+      setLoading(false);
     }
   };
 
-  const updateSecuritySettings = async (field: string, value: boolean) => {
-    if (!profile) return;
-
-    setIsUpdating(true);
+  const updateSecuritySettings = async (newSettings: SecuritySettings) => {
+    setLoading(true);
     try {
-      const updates = { [field]: value };
-      
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
-        .eq('user_id', session.user.id);
+        .update({ security_settings: newSettings })
+        .eq('user_id', session?.user?.id);
 
       if (error) throw error;
 
-      setProfile({ ...profile, ...updates });
+      setSecurity(newSettings);
       toast({
-        title: "Success",
-        description: "Security settings updated",
+        title: "Security settings updated",
+        description: "Your security preferences have been saved.",
       });
-    } catch (error) {
-      console.error('Error updating settings:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to update settings",
+        title: "Error updating settings",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsUpdating(false);
+      setLoading(false);
     }
   };
 
   const deleteAccount = async () => {
+    if (!confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      return;
+    }
+
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.admin.deleteUser(session.user.id);
+      const { error } = await supabase.auth.admin.deleteUser(session?.user?.id || '');
+      
       if (error) throw error;
 
       toast({
-        title: "Account Deleted",
-        description: "Your account has been permanently deleted",
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
       });
-    } catch (error) {
-      console.error('Error deleting account:', error);
+
+      window.location.href = '/';
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to delete account",
+        title: "Error deleting account",
+        description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card className="bg-slate-900 border-slate-800">
-        <CardContent className="flex items-center justify-center p-6">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {/* Notification Settings */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-slate-50">Notification Settings</CardTitle>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            Notification Preferences
+          </CardTitle>
           <CardDescription className="text-slate-400">
-            Manage how you receive notifications
+            Choose how you want to receive notifications
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="email-notifications" className="text-slate-300">
-              Email Notifications
-            </Label>
+            <div className="space-y-0.5">
+              <Label className="text-slate-300">Push Notifications</Label>
+              <p className="text-sm text-slate-500">Receive push notifications in your browser</p>
+            </div>
             <Switch
-              id="email-notifications"
-              checked={profile?.email_notifications || false}
-              onCheckedChange={(checked) => updateNotificationSettings('email_notifications', checked)}
-              disabled={isUpdating}
+              checked={notifications.push}
+              onCheckedChange={(checked) => 
+                updateNotificationSettings({ ...notifications, push: checked })
+              }
+              disabled={loading}
             />
           </div>
+
           <div className="flex items-center justify-between">
-            <Label htmlFor="sms-notifications" className="text-slate-300">
-              SMS Notifications
-            </Label>
+            <div className="space-y-0.5">
+              <Label className="text-slate-300">Email Notifications</Label>
+              <p className="text-sm text-slate-500">Receive notifications via email</p>
+            </div>
             <Switch
-              id="sms-notifications"
-              checked={profile?.sms_notifications || false}
-              onCheckedChange={(checked) => updateNotificationSettings('sms_notifications', checked)}
-              disabled={isUpdating}
+              checked={notifications.email}
+              onCheckedChange={(checked) => 
+                updateNotificationSettings({ ...notifications, email: checked })
+              }
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-slate-300">SMS Notifications</Label>
+              <p className="text-sm text-slate-500">Receive notifications via SMS</p>
+            </div>
+            <Switch
+              checked={notifications.sms}
+              onCheckedChange={(checked) => 
+                updateNotificationSettings({ ...notifications, sms: checked })
+              }
+              disabled={loading}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Security Settings */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-slate-800 border-slate-700">
         <CardHeader>
-          <CardTitle className="text-slate-50">Security Settings</CardTitle>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Security Settings
+          </CardTitle>
           <CardDescription className="text-slate-400">
-            Manage your account security
+            Manage your account security preferences
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label htmlFor="two-factor" className="text-slate-300">
-              Two-Factor Authentication
-            </Label>
+            <div className="space-y-0.5">
+              <Label className="text-slate-300">Two-Factor Authentication</Label>
+              <p className="text-sm text-slate-500">Add an extra layer of security to your account</p>
+            </div>
             <Switch
-              id="two-factor"
-              checked={profile?.two_factor_enabled || false}
-              onCheckedChange={(checked) => updateSecuritySettings('two_factor_enabled', checked)}
-              disabled={isUpdating}
+              checked={security.two_factor_enabled}
+              onCheckedChange={(checked) => 
+                updateSecuritySettings({ ...security, two_factor_enabled: checked })
+              }
+              disabled={loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-slate-300">Login Alerts</Label>
+              <p className="text-sm text-slate-500">Get notified of new login attempts</p>
+            </div>
+            <Switch
+              checked={security.login_alerts}
+              onCheckedChange={(checked) => 
+                updateSecuritySettings({ ...security, login_alerts: checked })
+              }
+              disabled={loading}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Danger Zone */}
-      <Card className="bg-slate-900 border-red-800 border-2">
+      <Card className="bg-red-900/20 border-red-700">
         <CardHeader>
-          <CardTitle className="text-red-400">Danger Zone</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardTitle className="text-red-400 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription className="text-red-300">
             Irreversible and destructive actions
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="flex items-center space-x-2">
-                <Trash2 className="w-4 h-4" />
-                <span>Delete Account</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-slate-900 border-slate-800">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-slate-50">Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription className="text-slate-400">
-                  This action cannot be undone. This will permanently delete your account
-                  and remove all your data from our servers.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="bg-slate-800 border-slate-700 text-slate-300">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction onClick={deleteAccount} className="bg-red-600 hover:bg-red-700">
-                  Delete Account
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="destructive"
+            onClick={deleteAccount}
+            disabled={loading}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {loading ? 'Deleting...' : 'Delete Account'}
+          </Button>
         </CardContent>
       </Card>
     </div>
   );
 };
+
+export default AccountSettings;

@@ -1,34 +1,26 @@
 
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Languages } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { languages } from "lucide-react";
 
-export const LanguageSelector = () => {
+const LanguageSelector = () => {
   const { language, setLanguage } = useLanguage();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-          <Languages className="w-4 h-4" />
-          <span className="hidden sm:inline">{language === 'en' ? 'EN' : 'አማ'}</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
-        <DropdownMenuItem 
-          onClick={() => setLanguage('en')}
-          className="text-slate-300 hover:text-white hover:bg-slate-700"
-        >
-          English
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={() => setLanguage('am')}
-          className="text-slate-300 hover:text-white hover:bg-slate-700"
-        >
-          አማርኛ
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Select value={language} onValueChange={(value: 'en' | 'am') => setLanguage(value)}>
+      <SelectTrigger className="w-20 bg-slate-800 border-slate-600 text-slate-300">
+        <languages className="w-4 h-4" />
+      </SelectTrigger>
+      <SelectContent className="bg-slate-800 border-slate-700">
+        <SelectItem value="en" className="text-slate-300 hover:bg-slate-700">
+          EN
+        </SelectItem>
+        <SelectItem value="am" className="text-slate-300 hover:bg-slate-700">
+          አማ
+        </SelectItem>
+      </SelectContent>
+    </Select>
   );
 };
+
+export default LanguageSelector;

@@ -1,347 +1,343 @@
 
 import { useState, useEffect } from "react";
-import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Session } from "@supabase/supabase-js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, Trash2 } from "lucide-react";
+import { CreditCard, Plus, Trash2, Smartphone, Building } from "lucide-react";
 
 interface PaymentMethodsSectionProps {
-  session: Session;
+  session: Session | null;
 }
 
 interface PaymentMethod {
   id: string;
-  type: 'bank' | 'mobile' | 'crypto';
+  type: 'card' | 'mobile' | 'bank';
   name: string;
-  details: any;
-  is_primary: boolean;
+  details: string;
+  is_default: boolean;
 }
 
-interface UserProfile {
-  id: string;
-  user_id: string;
-}
-
-export const PaymentMethodsSection = ({ session }: PaymentMethodsSectionProps) => {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+const PaymentMethodsSection = ({ session }: PaymentMethodsSectionProps) => {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newMethod, setNewMethod] = useState({
-    type: '',
-    name: '',
-    accountNumber: '',
-    bankName: '',
-    mobileProvider: '',
-    walletAddress: ''
-  });
+  const [loading, setLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const { toast } = useToast();
 
+  const [newMethod, setNewMethod] = useState({
+    type: 'card' as 'card' | 'mobile' | 'bank',
+    name: '',
+    details: ''
+  });
+
   useEffect(() => {
-    loadProfile();
+    if (session?.user) {
+      fetchPaymentMethods();
+    }
   }, [session]);
 
-  const loadProfile = async () => {
+  const fetchPaymentMethods = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('user_id', session.user.id)
+        .select('payment_methods')
+        .eq('user_id', session?.user?.id)
         .single();
 
       if (error) throw error;
-      setProfile(data);
-      
-      // Load payment methods from profile data or set empty array
-      setPaymentMethods([]);
+
+      if (data?.payment_methods && Array.isArray(data.payment_methods)) {
+        setPaymentMethods(data.payment_methods as PaymentMethod[]);
+      }
     } catch (error) {
-      console.error('Error loading profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load payment methods",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      console.error('Error fetching payment methods:', error);
     }
   };
 
   const addPaymentMethod = async () => {
-    if (!profile || !newMethod.type || !newMethod.name) return;
-
-    try {
-      const method: PaymentMethod = {
-        id: Date.now().toString(),
-        type: newMethod.type as 'bank' | 'mobile' | 'crypto',
-        name: newMethod.name,
-        details: {
-          accountNumber: newMethod.accountNumber,
-          bankName: newMethod.bankName,
-          mobileProvider: newMethod.mobileProvider,
-          walletAddress: newMethod.walletAddress
-        },
-        is_primary: paymentMethods.length === 0
-      };
-
-      const updatedMethods = [...paymentMethods, method];
-      setPaymentMethods(updatedMethods);
-
-      // Note: In a real implementation, you'd store this in a payment_methods table
-      // For now, we're just managing it in local state
-      
+    if (!newMethod.name || !newMethod.details) {
       toast({
-        title: "Success",
-        description: "Payment method added successfully",
-      });
-
-      setIsDialogOpen(false);
-      setNewMethod({
-        type: '',
-        name: '',
-        accountNumber: '',
-        bankName: '',
-        mobileProvider: '',
-        walletAddress: ''
-      });
-    } catch (error) {
-      console.error('Error adding payment method:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add payment method",
+        title: "Missing information",
+        description: "Please fill in all fields.",
         variant: "destructive",
       });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const newPaymentMethod: PaymentMethod = {
+        id: crypto.randomUUID(),
+        type: newMethod.type,
+        name: newMethod.name,
+        details: newMethod.details,
+        is_default: paymentMethods.length === 0
+      };
+
+      const updatedMethods = [...paymentMethods, newPaymentMethod];
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ payment_methods: updatedMethods })
+        .eq('user_id', session?.user?.id);
+
+      if (error) throw error;
+
+      setPaymentMethods(updatedMethods);
+      setNewMethod({ type: 'card', name: '', details: '' });
+      setShowAddForm(false);
+
+      toast({
+        title: "Payment method added",
+        description: "Your payment method has been successfully added.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error adding payment method",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const removePaymentMethod = async (methodId: string) => {
+    setLoading(true);
     try {
       const updatedMethods = paymentMethods.filter(method => method.id !== methodId);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ payment_methods: updatedMethods })
+        .eq('user_id', session?.user?.id);
+
+      if (error) throw error;
+
       setPaymentMethods(updatedMethods);
 
       toast({
-        title: "Success",
-        description: "Payment method removed successfully",
+        title: "Payment method removed",
+        description: "The payment method has been removed from your account.",
       });
-    } catch (error) {
-      console.error('Error removing payment method:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to remove payment method",
+        title: "Error removing payment method",
+        description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const setPrimaryMethod = async (methodId: string) => {
+  const setDefaultPaymentMethod = async (methodId: string) => {
+    setLoading(true);
     try {
       const updatedMethods = paymentMethods.map(method => ({
         ...method,
-        is_primary: method.id === methodId
+        is_default: method.id === methodId
       }));
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ payment_methods: updatedMethods })
+        .eq('user_id', session?.user?.id);
+
+      if (error) throw error;
+
       setPaymentMethods(updatedMethods);
 
       toast({
-        title: "Success",
-        description: "Primary payment method updated",
+        title: "Default payment method updated",
+        description: "Your default payment method has been changed.",
       });
-    } catch (error) {
-      console.error('Error updating primary method:', error);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to update primary method",
+        title: "Error updating default method",
+        description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card className="bg-slate-900 border-slate-800">
-        <CardContent className="flex items-center justify-center p-6">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getMethodIcon = (type: string) => {
+    switch (type) {
+      case 'card':
+        return <CreditCard className="w-5 h-5" />;
+      case 'mobile':
+        return <Smartphone className="w-5 h-5" />;
+      case 'bank':
+        return <Building className="w-5 h-5" />;
+      default:
+        return <CreditCard className="w-5 h-5" />;
+    }
+  };
+
+  const getMethodTypeName = (type: string) => {
+    switch (type) {
+      case 'card':
+        return 'Credit/Debit Card';
+      case 'mobile':
+        return 'Mobile Money';
+      case 'bank':
+        return 'Bank Transfer';
+      default:
+        return 'Payment Method';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <Card className="bg-slate-900 border-slate-800">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-slate-50">Payment Methods</CardTitle>
-              <CardDescription className="text-slate-400">
-                Manage your payment methods for deposits and withdrawals
-              </CardDescription>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-medium text-white">Payment Methods</h3>
+          <p className="text-sm text-slate-400">Manage your payment methods for deposits and withdrawals</p>
+        </div>
+        <Button
+          onClick={() => setShowAddForm(true)}
+          className="bg-yellow-500 hover:bg-yellow-600 text-slate-900"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Method
+        </Button>
+      </div>
+
+      {showAddForm && (
+        <Card className="bg-slate-800 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">Add New Payment Method</CardTitle>
+            <CardDescription className="text-slate-400">
+              Add a new payment method for transactions
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Payment Type</Label>
+              <Select value={newMethod.type} onValueChange={(value: 'card' | 'mobile' | 'bank') => 
+                setNewMethod({ ...newMethod, type: value })
+              }>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  <SelectItem value="card">Credit/Debit Card</SelectItem>
+                  <SelectItem value="mobile">Mobile Money (M-Pesa, etc.)</SelectItem>
+                  <SelectItem value="bank">Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-yellow-600 hover:bg-yellow-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Method
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-slate-900 border-slate-800">
-                <DialogHeader>
-                  <DialogTitle className="text-slate-50">Add Payment Method</DialogTitle>
-                  <DialogDescription className="text-slate-400">
-                    Add a new payment method for transactions
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="method-type" className="text-slate-300">Payment Type</Label>
-                    <Select value={newMethod.type} onValueChange={(value) => setNewMethod({...newMethod, type: value})}>
-                      <SelectTrigger className="bg-slate-800 border-slate-700">
-                        <SelectValue placeholder="Select payment type" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
-                        <SelectItem value="bank">Bank Account</SelectItem>
-                        <SelectItem value="mobile">Mobile Money</SelectItem>
-                        <SelectItem value="crypto">Cryptocurrency</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="method-name" className="text-slate-300">Method Name</Label>
-                    <Input
-                      id="method-name"
-                      value={newMethod.name}
-                      onChange={(e) => setNewMethod({...newMethod, name: e.target.value})}
-                      placeholder="e.g., My Bank Account"
-                      className="bg-slate-800 border-slate-700"
-                    />
-                  </div>
-                  {newMethod.type === 'bank' && (
-                    <>
-                      <div>
-                        <Label htmlFor="bank-name" className="text-slate-300">Bank Name</Label>
-                        <Input
-                          id="bank-name"
-                          value={newMethod.bankName}
-                          onChange={(e) => setNewMethod({...newMethod, bankName: e.target.value})}
-                          placeholder="e.g., Commercial Bank of Ethiopia"
-                          className="bg-slate-800 border-slate-700"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="account-number" className="text-slate-300">Account Number</Label>
-                        <Input
-                          id="account-number"
-                          value={newMethod.accountNumber}
-                          onChange={(e) => setNewMethod({...newMethod, accountNumber: e.target.value})}
-                          placeholder="Enter account number"
-                          className="bg-slate-800 border-slate-700"
-                        />
-                      </div>
-                    </>
-                  )}
-                  {newMethod.type === 'mobile' && (
-                    <>
-                      <div>
-                        <Label htmlFor="mobile-provider" className="text-slate-300">Mobile Provider</Label>
-                        <Select value={newMethod.mobileProvider} onValueChange={(value) => setNewMethod({...newMethod, mobileProvider: value})}>
-                          <SelectTrigger className="bg-slate-800 border-slate-700">
-                            <SelectValue placeholder="Select provider" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-slate-800 border-slate-700">
-                            <SelectItem value="telebirr">TeleBirr</SelectItem>
-                            <SelectItem value="mpesa">M-Pesa</SelectItem>
-                            <SelectItem value="cbepay">CBE Pay</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="mobile-number" className="text-slate-300">Mobile Number</Label>
-                        <Input
-                          id="mobile-number"
-                          value={newMethod.accountNumber}
-                          onChange={(e) => setNewMethod({...newMethod, accountNumber: e.target.value})}
-                          placeholder="e.g., +251912345678"
-                          className="bg-slate-800 border-slate-700"
-                        />
-                      </div>
-                    </>
-                  )}
-                  {newMethod.type === 'crypto' && (
-                    <div>
-                      <Label htmlFor="wallet-address" className="text-slate-300">Wallet Address</Label>
-                      <Input
-                        id="wallet-address"
-                        value={newMethod.walletAddress}
-                        onChange={(e) => setNewMethod({...newMethod, walletAddress: e.target.value})}
-                        placeholder="Enter wallet address"
-                        className="bg-slate-800 border-slate-700"
-                      />
-                    </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button onClick={addPaymentMethod} className="bg-yellow-600 hover:bg-yellow-700">
-                    Add Method
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {paymentMethods.length === 0 ? (
-            <div className="text-center py-8">
-              <CreditCard className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+
+            <div className="space-y-2">
+              <Label className="text-slate-300">Method Name</Label>
+              <Input
+                value={newMethod.name}
+                onChange={(e) => setNewMethod({ ...newMethod, name: e.target.value })}
+                placeholder="e.g., My Visa Card, M-Pesa Number"
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-300">
+                {newMethod.type === 'card' ? 'Card Number' : 
+                 newMethod.type === 'mobile' ? 'Phone Number' : 'Account Details'}
+              </Label>
+              <Input
+                value={newMethod.details}
+                onChange={(e) => setNewMethod({ ...newMethod, details: e.target.value })}
+                placeholder={
+                  newMethod.type === 'card' ? '**** **** **** 1234' :
+                  newMethod.type === 'mobile' ? '+251 9XX XXX XXX' : 'Account Number'
+                }
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={addPaymentMethod}
+                disabled={loading}
+                className="bg-yellow-500 hover:bg-yellow-600 text-slate-900"
+              >
+                {loading ? 'Adding...' : 'Add Method'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowAddForm(false)}
+                className="border-slate-600 text-slate-300"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-4">
+        {paymentMethods.length === 0 ? (
+          <Card className="bg-slate-800 border-slate-700">
+            <CardContent className="py-8 text-center">
+              <CreditCard className="w-12 h-12 text-slate-400 mx-auto mb-4" />
               <p className="text-slate-400">No payment methods added yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {paymentMethods.map((method) => (
-                <div key={method.id} className="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <CreditCard className="w-8 h-8 text-yellow-400" />
+              <p className="text-sm text-slate-500 mt-2">Add a payment method to start making transactions</p>
+            </CardContent>
+          </Card>
+        ) : (
+          paymentMethods.map((method) => (
+            <Card key={method.id} className="bg-slate-800 border-slate-700">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-yellow-500">
+                      {getMethodIcon(method.type)}
+                    </div>
                     <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-slate-50">{method.name}</span>
-                        {method.is_primary && (
-                          <Badge variant="secondary" className="bg-yellow-600 text-white">
-                            Primary
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-400 capitalize">{method.type}</p>
+                      <h4 className="text-white font-medium">{method.name}</h4>
+                      <p className="text-sm text-slate-400">{getMethodTypeName(method.type)}</p>
+                      <p className="text-sm text-slate-500">{method.details}</p>
+                      {method.is_default && (
+                        <span className="text-xs bg-yellow-500 text-slate-900 px-2 py-1 rounded mt-1 inline-block">
+                          Default
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {!method.is_primary && (
+                    {!method.is_default && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPrimaryMethod(method.id)}
-                        className="border-slate-700 text-slate-300"
+                        onClick={() => setDefaultPaymentMethod(method.id)}
+                        disabled={loading}
+                        className="border-slate-600 text-slate-300"
                       >
-                        Set Primary
+                        Set Default
                       </Button>
                     )}
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => removePaymentMethod(method.id)}
+                      disabled={loading}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 };
+
+export default PaymentMethodsSection;
