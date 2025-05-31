@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, User, Phone, Calendar, MapPin } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
 import GoogleAuth from "@/components/GoogleAuth";
 
 const Auth = () => {
@@ -22,16 +20,12 @@ const Auth = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { t } = useLanguage();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Clear any existing auth state first
-      await supabase.auth.signOut();
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -62,14 +56,10 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      // Clear any existing auth state first
-      await supabase.auth.signOut();
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -84,7 +74,7 @@ const Auth = () => {
 
       toast({
         title: "Account created!",
-        description: `Welcome to ${t('siteName')}! You have been automatically signed in.`,
+        description: "Welcome to MEDB! You have been automatically signed in.",
       });
 
       if (data.user) {
@@ -105,7 +95,7 @@ const Auth = () => {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-slate-800 border-slate-700">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-white">{t('siteName')}</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white">MEDB</CardTitle>
           <CardDescription className="text-slate-400">
             Join Ethiopia's premier betting platform
           </CardDescription>
@@ -114,7 +104,7 @@ const Auth = () => {
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-slate-700">
-              <TabsTrigger value="signin" className="text-slate-300">{t('signIn')}</TabsTrigger>
+              <TabsTrigger value="signin" className="text-slate-300">Sign In</TabsTrigger>
               <TabsTrigger value="signup" className="text-slate-300">Sign Up</TabsTrigger>
             </TabsList>
 
@@ -132,7 +122,7 @@ const Auth = () => {
 
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email" className="text-slate-300">{t('email')}</Label>
+                  <Label htmlFor="signin-email" className="text-slate-300">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
@@ -148,7 +138,7 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password" className="text-slate-300">{t('password')}</Label>
+                  <Label htmlFor="signin-password" className="text-slate-300">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
@@ -168,7 +158,7 @@ const Auth = () => {
                   className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-slate-900"
                   disabled={loading}
                 >
-                  {loading ? "Signing in..." : t('signIn')}
+                  {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </TabsContent>
@@ -188,7 +178,7 @@ const Auth = () => {
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName" className="text-slate-300">{t('firstName')}</Label>
+                    <Label htmlFor="firstName" className="text-slate-300">First Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                       <Input
@@ -203,7 +193,7 @@ const Auth = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="lastName" className="text-slate-300">{t('lastName')}</Label>
+                    <Label htmlFor="lastName" className="text-slate-300">Last Name</Label>
                     <Input
                       id="lastName"
                       placeholder="Last name"
@@ -216,7 +206,7 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-slate-300">{t('username')}</Label>
+                  <Label htmlFor="username" className="text-slate-300">Username</Label>
                   <Input
                     id="username"
                     placeholder="Choose a username"
@@ -228,7 +218,7 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-slate-300">{t('email')}</Label>
+                  <Label htmlFor="signup-email" className="text-slate-300">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
@@ -244,7 +234,7 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-slate-300">{t('phoneNumber')}</Label>
+                  <Label htmlFor="phone" className="text-slate-300">Phone Number</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
@@ -258,7 +248,7 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="dateOfBirth" className="text-slate-300">{t('dateOfBirth')}</Label>
+                  <Label htmlFor="dateOfBirth" className="text-slate-300">Date of Birth</Label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
@@ -272,7 +262,7 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-slate-300">{t('password')}</Label>
+                  <Label htmlFor="signup-password" className="text-slate-300">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
@@ -292,7 +282,7 @@ const Auth = () => {
                   className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-slate-900"
                   disabled={loading}
                 >
-                  {loading ? "Creating account..." : t('createAccount')}
+                  {loading ? "Creating account..." : "Create Account"}
                 </Button>
               </form>
             </TabsContent>

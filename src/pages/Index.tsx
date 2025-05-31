@@ -7,7 +7,6 @@ import Hero from "@/components/Hero";
 import GamesSection from "@/components/GamesSection";
 import SportsSection from "@/components/SportsSection";
 import LiveSection from "@/components/LiveSection";
-import LiveSportsViewing from "@/components/LiveSportsViewing";
 import Footer from "@/components/Footer";
 import AuthModal from "@/components/AuthModal";
 import Wallet from "@/components/Wallet";
@@ -15,15 +14,13 @@ import GamePlay from "@/components/GamePlay";
 import InternationalBetting from "@/components/InternationalBetting";
 import { Session } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Gamepad2, Wallet as WalletIcon, Trophy, settings, Tv } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { Home, Gamepad2, Wallet as WalletIcon, Trophy, Settings } from "lucide-react";
 
 const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const { toast } = useToast();
-  const { t } = useLanguage();
 
   useEffect(() => {
     // Get initial session
@@ -80,7 +77,6 @@ const Index = () => {
           <Hero onGetStarted={() => window.location.href = '/auth'} />
           <GamesSection />
           <SportsSection />
-          <LiveSportsViewing />
           <LiveSection />
         </main>
 
@@ -105,30 +101,26 @@ const Index = () => {
       <main className="pt-16">
         <div className="container mx-auto px-4 py-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-slate-800 mb-6">
+            <TabsList className="grid w-full grid-cols-5 bg-slate-800 mb-6">
               <TabsTrigger value="home" className="flex items-center gap-2 text-slate-300">
                 <Home className="w-4 h-4" />
-                {t('home')}
+                Home
               </TabsTrigger>
               <TabsTrigger value="games" className="flex items-center gap-2 text-slate-300">
                 <Gamepad2 className="w-4 h-4" />
-                {t('games')}
+                Games
               </TabsTrigger>
               <TabsTrigger value="sports" className="flex items-center gap-2 text-slate-300">
                 <Trophy className="w-4 h-4" />
-                {t('sportsBetting')}
-              </TabsTrigger>
-              <TabsTrigger value="live-tv" className="flex items-center gap-2 text-slate-300">
-                <Tv className="w-4 h-4" />
-                {t('liveTV')}
+                Sports Betting
               </TabsTrigger>
               <TabsTrigger value="wallet" className="flex items-center gap-2 text-slate-300">
                 <WalletIcon className="w-4 h-4" />
-                {t('wallet')}
+                Wallet
               </TabsTrigger>
               <TabsTrigger value="admin" className="flex items-center gap-2 text-slate-300">
-                <settings className="w-4 h-4" />
-                {t('admin')}
+                <Settings className="w-4 h-4" />
+                Admin
               </TabsTrigger>
             </TabsList>
 
@@ -136,7 +128,6 @@ const Index = () => {
               <div className="space-y-16">
                 <GamesSection />
                 <SportsSection />
-                <LiveSportsViewing />
                 <LiveSection />
               </div>
             </TabsContent>
@@ -147,10 +138,6 @@ const Index = () => {
 
             <TabsContent value="sports">
               <InternationalBetting session={session} />
-            </TabsContent>
-
-            <TabsContent value="live-tv">
-              <LiveSportsViewing />
             </TabsContent>
 
             <TabsContent value="wallet">
